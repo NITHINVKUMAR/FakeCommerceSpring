@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: FakeCommerce
+  datasource:
+    url: jdbc:mysql://localhost:3306/fakecommerce
+    username: root
+    password: Karthik@22
+    driver-class-name: com.mysql.cj.jdbc.Driver  # JDBC driver used to connect and communicate with MySQL database
+  jpa:
+    show-sql: true  #This is to show the Raw SQL query on the console
+    hibernate:
+      ddl-auto: update
