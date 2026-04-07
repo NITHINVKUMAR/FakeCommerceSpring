@@ -1,18 +1,19 @@
 package com.example.FakeCommerce.dto;
 
-import com.example.FakeCommerce.schema.Category;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class CreateProductRequestDto {
+@SuperBuilder
+public class GetProductResponseDto {
+    private Long id;
 
     private String title;
 
@@ -21,8 +22,6 @@ public class CreateProductRequestDto {
     private BigDecimal price;
 
     private String image;
-
-    private Long categoryId;
 
     private String rating;
 }

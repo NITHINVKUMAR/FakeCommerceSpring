@@ -1,32 +1,73 @@
 package com.example.FakeCommerce.services;
 
 import com.example.FakeCommerce.dto.CreateProductRequestDto;
+import com.example.FakeCommerce.dto.GetProductResponseDto;
+import com.example.FakeCommerce.dto.GetProductWithResponseDto;
 import com.example.FakeCommerce.repositories.ProductRepository;
+import com.example.FakeCommerce.schema.Category;
 import com.example.FakeCommerce.schema.Product;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor  // Creates constructor for required fields (final and @NonNull)
 public class ProductService {
     private final ProductRepository productRepository;
-    public List<Product> getAllProducts(){
-        return productRepository.findAll();
+    private final CategoryService categoryService;
+
+    public List<GetProductResponseDto> getAllProducts() {
+        List<Product> products = productRepository.findAll();
+//        List<GetProductResponseDto> responseDtos = new ArrayList<>();
+//        for (Product product : products) {
+//            GetProductResponseDto responseDto = GetProductResponseDto.builder().
+//                    id(product.getId())
+//                    .title(product.getTitle())
+//                    .description((product.getDescription()))
+//                    .image((product.getImage()))
+//                    .price((product.getPrice()))
+//                    .rating((product.getRating()))
+//                    .build();
+//            responseDtos.add(responseDto);
+//        }
+//        return responseDtos;
+
+        // Using Stream APIS
+        return products.stream()
+                .map(product -> GetProductResponseDto.builder()
+                        .id(product.getId())
+                        .title(product.getTitle())
+                        .description((product.getDescription()))
+                        .image((product.getImage()))
+                        .price((product.getPrice()))
+                        .rating((product.getRating()))
+                        .build()
+                )
+                .collect(Collectors.toList());
     }
-    public Product getProductById(Long id){
+    public GetProductResponseDto getProductById(Long id){
         return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .map(product -> GetProductResponseDto.builder()
+                .id(product.getId())
+                .title(product.getTitle())
+                .description((product.getDescription()))
+                .image((product.getImage()))
+                .price((product.getPrice()))
+                .rating((product.getRating()))
+                .build())
+                .orElseThrow(()->new RuntimeException("Product not found"));
     }
-    public Product saveProduct(CreateProductRequestDto createProduct){
+    public Product createProduct(CreateProductRequestDto requestDto){
+        Category category = categoryService.getCategoryById(requestDto.getCategoryId());
         Product newProduct = Product.builder()
-                .title(createProduct.getTitle())
-                .description(createProduct.getDescription())
-                .price(createProduct.getPrice())
-                .image(createProduct.getImage())
-                .category(createProduct.getCategory())
-                .rating(createProduct.getRating())
+                .title(requestDto.getTitle())
+                .description(requestDto.getDescription())
+                .price(requestDto.getPrice())
+                .image(requestDto.getImage())
+                .category(category)
+                .rating(requestDto.getRating())
                 .build();
         return productRepository.save(newProduct);
     }
@@ -38,5 +79,18 @@ public class ProductService {
     }
     public List<String> getAllCatagories(){
         return productRepository.getAllCategories();
+    }
+
+    public GetProductWithResponseDto getProductDetialsById(Long id){
+         Product product = productRepository.getProductDetailsById(id).get(0);
+         return GetProductWithResponseDto.builder()
+                 .id(product.getId())
+                 .title(product.getTitle())
+                 .description(product.getDescription())
+                 .image(product.getImage())
+                 .rating(product.getRating())
+                 .price(product.getPrice())
+                 .category(product.getCategory().getName())
+                 .build();
     }
 }

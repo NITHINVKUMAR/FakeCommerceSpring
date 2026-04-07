@@ -1,6 +1,8 @@
 package com.example.FakeCommerce.controllers;
 
 import com.example.FakeCommerce.dto.CreateProductRequestDto;
+import com.example.FakeCommerce.dto.GetProductResponseDto;
+import com.example.FakeCommerce.dto.GetProductWithResponseDto;
 import com.example.FakeCommerce.schema.Product;
 import com.example.FakeCommerce.services.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -15,18 +17,23 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public List<Product>getAllProducts(){
+    public List<GetProductResponseDto>getAllProducts(){
         return productService.getAllProducts();
     }
 
-    @PostMapping("/api/v1/:id")
-    public Product getProductBy(Long id){
+    @GetMapping("/{id}")
+    public GetProductResponseDto getProductById(@PathVariable Long id){
         return productService.getProductById(id);
     }
 
+    @GetMapping("/{id}/detials")
+    public GetProductWithResponseDto getProductDetialsById(@PathVariable Long id){
+        return productService.getProductDetialsById(id);
+    }
+
     @PostMapping
-    public Product saveProduct(@RequestBody CreateProductRequestDto createProduct){
-        return productService.saveProduct(createProduct);
+    public Product createProduct(@RequestBody CreateProductRequestDto createProduct){
+        return productService.createProduct(createProduct);
     }
 
     @DeleteMapping("/{id}")

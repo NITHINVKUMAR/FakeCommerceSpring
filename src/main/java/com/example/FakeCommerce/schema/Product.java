@@ -15,10 +15,8 @@ import java.math.BigDecimal;
 @Entity  /* Marks this class as a JPA entity (mapped to a database table) if we dont add this then we cannot
 create table for this class, NOT map it to the database,NOT allow CRUD operations via repositories */
 @Table(name = "products") //This is the table name
-public class Product {
-    @Id // to mark the field as primary key
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // This is to autoincrement the value specially for mysql
-    private Long id;
+public class Product extends BaseEntity {
+
 
     @Column(nullable = false)
     private String title;
@@ -31,7 +29,9 @@ public class Product {
 
     private String image;
 
-    private String category;
+    @ManyToOne(fetch = FetchType.LAZY) // Load related entity only when needed
+    @JoinColumn(name = "category_id",nullable = false)
+    private Category category;
 
     private String rating;
 }
