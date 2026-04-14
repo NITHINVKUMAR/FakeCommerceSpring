@@ -25,12 +25,12 @@ public class CategoryController {
     }
 
     @GetMapping("/{id}")
-    public Category getCategoryById(Long id){
+    public Category getCategoryById(@PathVariable  Long id){
         return categoryService.getCategoryById(id);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteCategory(Long id){
+    public void deleteCategory(@PathVariable Long id){
         categoryService.deleteCategory(id);
     }
 }
