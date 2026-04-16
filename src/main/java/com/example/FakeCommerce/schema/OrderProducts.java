@@ -26,4 +26,7 @@ public class OrderProducts extends BaseEntity{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
     private Product products;
+
+    @Column(nullable = false)
+    private Integer quantity;
 }
