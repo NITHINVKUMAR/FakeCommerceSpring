@@ -3,6 +3,7 @@ package com.example.FakeCommerce.controllers;
 import com.example.FakeCommerce.dto.CreateCategoryRequestDto;
 import com.example.FakeCommerce.schema.Category;
 import com.example.FakeCommerce.services.CategoryService;
+import com.example.FakeCommerce.utils.APIResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,8 +18,10 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @PostMapping
-    public ResponseEntity<Category> createCategory(@RequestBody CreateCategoryRequestDto requestDto){
-        return ResponseEntity.status(HttpStatus.CREATED).body(categoryService.createCategory(requestDto));
+    public ResponseEntity<APIResponse<Category>> createCategory(@RequestBody CreateCategoryRequestDto requestDto){
+        Category category = categoryService.createCategory(requestDto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(APIResponse.success(category,"Category Created Successfully"));
     }
 
     @GetMapping
