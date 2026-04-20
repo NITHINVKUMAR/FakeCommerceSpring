@@ -4,6 +4,8 @@ import com.example.FakeCommerce.dto.CreateCategoryRequestDto;
 import com.example.FakeCommerce.schema.Category;
 import com.example.FakeCommerce.services.CategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,8 +17,8 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @PostMapping
-    public Category createCategory(@RequestBody CreateCategoryRequestDto requestDto){
-        return categoryService.createCategory(requestDto);
+    public ResponseEntity<Category> createCategory(@RequestBody CreateCategoryRequestDto requestDto){
+        return ResponseEntity.status(HttpStatus.CREATED).body(categoryService.createCategory(requestDto));
     }
 
     @GetMapping
