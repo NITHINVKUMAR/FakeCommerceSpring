@@ -35,4 +35,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(APIResponse.error("Something Went Wrong","Internal Server Error"));
     }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<APIResponse<Void>> handleBadRequestException(BadRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(APIResponse.error(ex.getMessage(), "Bad request"));
+    }
 }

@@ -9,6 +9,6 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder // We cannot use builder here because we are inheriting properties from GetProductResponseDto so both will have @SuperBuilder
-public class GetProductWithResponseDto extends GetProductResponseDto {
+public class GetProductWithDetailsResponseDto extends GetProductResponseDto {
     private String category;
 }

@@ -2,7 +2,8 @@ package com.example.FakeCommerce.services;
 
 import com.example.FakeCommerce.dto.CreateProductRequestDto;
 import com.example.FakeCommerce.dto.GetProductResponseDto;
-import com.example.FakeCommerce.dto.GetProductWithResponseDto;
+import com.example.FakeCommerce.dto.GetProductWithDetailsResponseDto;
+import com.example.FakeCommerce.exceptions.ResourceNotFoundException;
 import com.example.FakeCommerce.repositories.ProductRepository;
 import com.example.FakeCommerce.schema.Category;
 import com.example.FakeCommerce.schema.Product;
@@ -57,7 +58,7 @@ public class ProductService {
                 .price((product.getPrice()))
                 .rating((product.getRating()))
                 .build())
-                .orElseThrow(()->new RuntimeException("Product not found"));
+                .orElseThrow(()->new ResourceNotFoundException("Product with id " + id + " not found"));
     }
     public Product createProduct(CreateProductRequestDto requestDto){
         Category category = categoryService.getCategoryById(requestDto.getCategoryId());
@@ -72,7 +73,9 @@ public class ProductService {
         return productRepository.save(newProduct);
     }
     public void deleteProduct(Long id){
-        productRepository.deleteById(id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product with id " + id + " not found"));
+        productRepository.delete(product);
     }
     public List<Product> getProductsByCategory(String category){
         return productRepository.getProductsByCategory(category);
@@ -81,9 +84,13 @@ public class ProductService {
         return productRepository.getAllCategories();
     }
 
-    public GetProductWithResponseDto getProductDetialsById(Long id){
-         Product product = productRepository.getProductDetailsById(id).get(0);
-         return GetProductWithResponseDto.builder()
+    public GetProductWithDetailsResponseDto getProductDetialsById(Long id){
+        List<Product> results = productRepository.getProductDetailsById(id);
+        if (results.isEmpty()) {
+            throw new ResourceNotFoundException("Product with id " + id + " not found");
+        }
+        Product product = results.get(0);
+         return GetProductWithDetailsResponseDto.builder()
                  .id(product.getId())
                  .title(product.getTitle())
                  .description(product.getDescription())
