@@ -1,17 +1,26 @@
 package com.example.FakeCommerce.services;
 
 import com.example.FakeCommerce.adapters.OrderAdapter;
+import com.example.FakeCommerce.dto.CreateOrderRequestDto;
 import com.example.FakeCommerce.dto.GetOrderResponseDto;
 import com.example.FakeCommerce.exceptions.ResourceNotFoundException;
 import com.example.FakeCommerce.repositories.OrderProductRepository;
 import com.example.FakeCommerce.repositories.OrderRepository;
 import com.example.FakeCommerce.repositories.ProductRepository;
 import com.example.FakeCommerce.schema.Order;
+import com.example.FakeCommerce.schema.OrderProducts;
+import com.example.FakeCommerce.schema.OrderStatus;
+import com.example.FakeCommerce.schema.Product;
+import jakarta.transaction.Transactional;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,5 +45,57 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
         orderRepository.delete(order);
+    }
+
+    @Transactional
+    public GetOrderResponseDto createOrder(CreateOrderRequestDto createOrderRequestDto) {
+        Order order = Order.builder().status(OrderStatus.PENDING).build();
+        orderRepository.save(order);
+//        if(createOrderRequestDto.getOrderItems() != null){
+//            for(var itemDto : createOrderRequestDto.getOrderItems()){
+//
+//                Product product = productRepository.findById(itemDto.getProductId())
+//                        .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + itemDto.getProductId()));
+//                // 1 query per item
+//
+//                OrderProducts orderProducts = OrderProducts.builder()
+//                        .products(product)
+//                        .quantity(itemDto.getQuantity() != null ? itemDto.getQuantity() : 1).build();
+//
+//                orderProductRepository.save(orderProducts); // 1 insert per item
+//            }
+//        }
+
+            /*  This causes problem because
+            So for N items, you execute:
+            N SELECT queries (fetch products)
+            N INSERT queries (save orderProducts)
+            Total = 2N queries
+             */
+        if (createOrderRequestDto.getOrderItems() != null) {
+            List<Long> productIds = createOrderRequestDto.getOrderItems().stream()
+                    .map(item -> item.getProductId()).collect(Collectors.toList());
+            List<Product> products = productRepository.findAllById(productIds);
+            Map<Long, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
+            for (Long id : productIds) {
+                if (!productMap.containsKey(id)) {
+                    throw new ResourceNotFoundException("Product not found with id: " + id);
+                }
+            }
+            List<OrderProducts> orderProducts = new ArrayList<>();
+            for (var itemDto : createOrderRequestDto.getOrderItems()) {
+                Product product = productMap.get(itemDto.getProductId());
+
+                orderProducts.add(OrderProducts.builder()
+                        .order(order)
+                        .products(product)
+                        .quantity(itemDto.getQuantity() != null ? itemDto.getQuantity() : 1)
+                        .build());
+
+            }
+
+            orderProductRepository.saveAll(orderProducts);
+        }
+        return orderAdapter.mapToGetOrderResponseDto(order);
     }
 }

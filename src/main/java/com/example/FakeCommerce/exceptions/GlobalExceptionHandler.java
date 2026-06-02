@@ -30,6 +30,7 @@ public class GlobalExceptionHandler {
                 .body(APIResponse.error(message, "Invalid request parameter"));
     }
 
+    // Handle All generic exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<APIResponse<Void>>handleAllGenericExceptions(Exception ex){
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
