@@ -16,6 +16,7 @@ public class BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // This is to autoincrement the value specially for mysql
     private Long id;
 
+    @CreatedDate
     @Column(name = "created_at",nullable = false,updatable = false)
     private LocalDateTime createdAt;
 

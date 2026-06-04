@@ -2,6 +2,7 @@ package com.example.FakeCommerce.controllers;
 
 import com.example.FakeCommerce.dto.CreateOrderRequestDto;
 import com.example.FakeCommerce.dto.GetOrderResponseDto;
+import com.example.FakeCommerce.dto.GetOrderSummaryResponseDto;
 import com.example.FakeCommerce.dto.UpdateOrderRequestDto;
 import com.example.FakeCommerce.services.OrderService;
 import com.example.FakeCommerce.utils.APIResponse;
@@ -46,5 +47,12 @@ public class OrderController {
     public ResponseEntity<APIResponse<GetOrderResponseDto>> updateOrder(@PathVariable Long id, @RequestBody UpdateOrderRequestDto requestDto){
         return ResponseEntity.status(HttpStatus.OK)
                 .body(APIResponse.success(orderService.updateOrder(id,requestDto),"Order Updated successfully"));
+    }
+
+    @GetMapping("/{id}/summary")
+    public ResponseEntity<APIResponse<GetOrderSummaryResponseDto>> getOrderSummary(@PathVariable Long id) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(APIResponse.success(orderService.getOrderSummary(id), "Order summary fetched successfully"));
     }
 }

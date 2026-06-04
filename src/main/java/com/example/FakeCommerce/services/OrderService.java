@@ -15,6 +15,7 @@ import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -192,5 +193,29 @@ public class OrderService {
 
         }
         return orderAdapter.mapToGetOrderResponseDto(order);
+    }
+
+    public GetOrderSummaryResponseDto getOrderSummary(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+
+        List<OrderProducts> orderProducts = orderProductRepository.findByOrderWithProduct(order);
+
+        List<OrderItemResponseDto> items = orderAdapter.mapToOrderItemResponseDto(orderProducts);
+
+        int totalItems = orderProducts.stream().mapToInt(OrderProducts::getQuantity).sum();
+
+        BigDecimal totalPrice = orderProducts.stream().map(op -> op.getProducts().getPrice().multiply(BigDecimal.valueOf(op.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return GetOrderSummaryResponseDto.builder()
+                .id(order.getId())
+                .status(order.getStatus())
+                .items(items)
+                .totalItems(totalItems)
+                .totalPrice(totalPrice)
+                .createdAt(order.getCreatedAt())
+                .updatedAt(order.getUpdatedAt())
+                .build();
     }
 }
