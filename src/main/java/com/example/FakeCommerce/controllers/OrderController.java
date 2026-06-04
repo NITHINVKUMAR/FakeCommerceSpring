@@ -1,5 +1,6 @@
 package com.example.FakeCommerce.controllers;
 
+import com.example.FakeCommerce.dto.CreateOrderRequestDto;
 import com.example.FakeCommerce.dto.GetOrderResponseDto;
 import com.example.FakeCommerce.services.OrderService;
 import com.example.FakeCommerce.utils.APIResponse;
@@ -33,4 +34,13 @@ public class OrderController {
         orderService.deleteOrder(id);
         return ResponseEntity.status(HttpStatus.OK).body(APIResponse.success(null,"Order Deleted Successfully"));
     }
+
+    @PostMapping
+    public ResponseEntity<APIResponse<GetOrderResponseDto>> createOrder(@RequestBody CreateOrderRequestDto requestDto){
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(APIResponse.success(orderService.createOrder(),"Order Created Successfully"));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<APIResponse<GetOrderResponseDto>> updateOrder()
 }
