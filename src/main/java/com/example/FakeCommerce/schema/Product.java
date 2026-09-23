@@ -13,7 +13,9 @@ import java.math.BigDecimal;
 @Builder
 @Entity  /* Marks this class as a JPA entity (mapped to a database table) if we dont add this then we cannot
 create table for this class, NOT map it to the database,NOT allow CRUD operations via repositories */
-@Table(name = "products") //This is the table name
+@Table(name = "products",indexes = {
+        @Index(name = "idx_product_price", columnList = "price")
+}) //This is the table name
 @SQLDelete(sql = "UPDATE products SET deleted_at = CURRENT_TIMESTAMP where id = ?")
 @SQLRestriction("deleted_at IS NULL ")
 public class Product extends BaseEntity {
