@@ -7,10 +7,12 @@ import com.example.FakeCommerce.exceptions.ResourceNotFoundException;
 import com.example.FakeCommerce.repositories.ProductRepository;
 import com.example.FakeCommerce.schema.Category;
 import com.example.FakeCommerce.schema.Product;
+import com.example.FakeCommerce.services.cache.ProductRedisCache;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryService categoryService;
+    private final ProductRedisCache productRedisCache;
 
     public List<GetProductResponseDto> getAllProducts() {
         List<Product> products = productRepository.findAll();
@@ -49,16 +52,22 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
     public GetProductResponseDto getProductById(Long id){
-        return productRepository.findById(id)
+        Optional<GetProductResponseDto> cachedSummary = productRedisCache.getSummary(id);
+        if(cachedSummary.isPresent()){
+            return cachedSummary.get();
+        }
+        GetProductResponseDto response =  productRepository.findById(id)
                 .map(product -> GetProductResponseDto.builder()
-                .id(product.getId())
-                .title(product.getTitle())
-                .description((product.getDescription()))
-                .image((product.getImage()))
-                .price((product.getPrice()))
-                .rating((product.getRating()))
-                .build())
+                    .id(product.getId())
+                    .title(product.getTitle())
+                    .description((product.getDescription()))
+                    .image((product.getImage()))
+                    .price((product.getPrice()))
+                    .rating((product.getRating()))
+                    .build())
                 .orElseThrow(()->new ResourceNotFoundException("Product with id " + id + " not found"));
+                productRedisCache.putSummary(id, response);
+                return response;
     }
     public Product createProduct(CreateProductRequestDto requestDto){
         Category category = categoryService.getCategoryById(requestDto.getCategoryId());

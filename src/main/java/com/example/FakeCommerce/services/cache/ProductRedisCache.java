@@ -7,6 +7,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
 import java.util.Optional;
 
 @Service
@@ -14,6 +15,7 @@ import java.util.Optional;
 @Slf4j
 public class ProductRedisCache {
     private static final String KEY_SUMMARY = "product:summary:";
+    private static final Duration CACHE_TTL = Duration.ofMinutes(1);
 
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
@@ -41,7 +43,8 @@ public class ProductRedisCache {
         try {
             stringRedisTemplate.opsForValue().set(
                     KEY_SUMMARY + id,
-                    objectMapper.writeValueAsString(response));
+                    objectMapper.writeValueAsString(response),
+                    CACHE_TTL);
         } catch (Exception e) {
             throw new RuntimeException("Error serializing product summary to cache: " + e.getMessage());
         }
