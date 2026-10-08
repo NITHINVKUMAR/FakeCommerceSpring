@@ -9,7 +9,7 @@ version = '0.0.1-SNAPSHOT'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(25)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
 
@@ -38,6 +38,12 @@ dependencies {
 	// flyway core and flyway mysql
 	implementation 'org.springframework.boot:spring-boot-starter-flyway'
 	implementation 'org.flywaydb:flyway-mysql'
+
+	// Jedis Library for redis connection
+	implementation 'redis.clients:jedis:7.2.0'
+
+	// Spring Data Redis for Redis integration
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
