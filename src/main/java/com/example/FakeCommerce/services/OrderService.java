@@ -10,8 +10,8 @@ import com.example.FakeCommerce.schema.Order;
 import com.example.FakeCommerce.schema.OrderProducts;
 import com.example.FakeCommerce.schema.OrderStatus;
 import com.example.FakeCommerce.schema.Product;
+import com.example.FakeCommerce.services.cache.OrderRedisCache;
 import jakarta.transaction.Transactional;
-import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,6 +30,7 @@ public class OrderService {
     private final OrderProductRepository orderProductRepository;
     private final ProductRepository productRepository;
     private final OrderAdapter orderAdapter;
+    private final OrderRedisCache orderRedisCache;
 
     public List<GetOrderResponseDto> getAllOrders(){
         List<Order> orders = orderRepository.findAll();
@@ -45,33 +47,16 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
         orderRepository.delete(order);
+
+        // Evict summary from cache
+        orderRedisCache.evictOrderSummary(id);
     }
 
     @Transactional
     public GetOrderResponseDto createOrder(CreateOrderRequestDto createOrderRequestDto) {
         Order order = Order.builder().status(OrderStatus.PENDING).build();
         orderRepository.save(order);
-//        if(createOrderRequestDto.getOrderItems() != null){
-//            for(var itemDto : createOrderRequestDto.getOrderItems()){
-//
-//                Product product = productRepository.findById(itemDto.getProductId())
-//                        .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + itemDto.getProductId()));
-//                // 1 query per item
-//
-//                OrderProducts orderProducts = OrderProducts.builder()
-//                        .products(product)
-//                        .quantity(itemDto.getQuantity() != null ? itemDto.getQuantity() : 1).build();
-//
-//                orderProductRepository.save(orderProducts); // 1 insert per item
-//            }
-//        }
 
-            /*  This causes problem because
-            So for N items, you execute:
-            N SELECT queries (fetch products)
-            N INSERT queries (save orderProducts)
-            Total = 2N queries
-             */
         if (createOrderRequestDto.getOrderItems() != null) {
             List<Long> productIds = createOrderRequestDto.getOrderItems().stream()
                     .map(item -> item.getProductId()).collect(Collectors.toList());
@@ -91,11 +76,12 @@ public class OrderService {
                         .products(product)
                         .quantity(itemDto.getQuantity() != null ? itemDto.getQuantity() : 1)
                         .build());
-
             }
 
             orderProductRepository.saveAll(orderProducts);
         }
+
+        // Pre-cache order summary upon creation if desired, or let it load lazily
         return orderAdapter.mapToGetOrderResponseDto(order);
     }
 
@@ -104,7 +90,6 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
 
-
         if(updateOrderRequestDto.getStatus() != null) {
             order.setStatus(updateOrderRequestDto.getStatus());
             orderRepository.save(order);
@@ -112,9 +97,7 @@ public class OrderService {
 
         if(updateOrderRequestDto.getOrderItems() != null) {
             List<Long> productIds = updateOrderRequestDto.getOrderItems().stream().map(item -> item.getProductId()).collect(Collectors.toList());
-
             List<Product> products = productRepository.findAllById(productIds);
-
             Map<Long, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, Function.identity()));
 
             for(var pid : productIds) {
@@ -131,7 +114,6 @@ public class OrderService {
 
             for(OrderItemActionDto itemAction : updateOrderRequestDto.getOrderItems()) {
                 Product product = productMap.get(itemAction.getProductId());
-
                 OrderProducts existing = existingItems.get(product.getId());
 
                 switch(itemAction.getAction()) {
@@ -164,7 +146,6 @@ public class OrderService {
                         }
                         existing.setQuantity(existing.getQuantity() + 1);
                         toSave.add(existing);
-
                     }
                     case DECREMENT -> {
                         if(existing == null) {
@@ -177,11 +158,8 @@ public class OrderService {
                             existing.setQuantity(existing.getQuantity() - 1);
                             toSave.add(existing);
                         }
-
-
                     }
                 }
-
             }
 
             if(!toSave.isEmpty()) {
@@ -190,17 +168,26 @@ public class OrderService {
             if(!toDelete.isEmpty()) {
                 orderProductRepository.deleteAll(toDelete);
             }
-
         }
+
+        // Evict or update cache since order items/status changed
+        orderRedisCache.evictOrderSummary(id);
+
         return orderAdapter.mapToGetOrderResponseDto(order);
     }
 
     public GetOrderSummaryResponseDto getOrderSummary(Long id) {
+        // 1. Check cache first
+        Optional<GetOrderSummaryResponseDto> cachedSummary = orderRedisCache.getOrderSummary(id);
+        if (cachedSummary.isPresent()) {
+            return cachedSummary.get();
+        }
+
+        // 2. Fetch from DB
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
 
         List<OrderProducts> orderProducts = orderProductRepository.findByOrderWithProduct(order);
-
         List<OrderItemResponseDto> items = orderAdapter.mapToOrderItemResponseDto(orderProducts);
 
         int totalItems = orderProducts.stream().mapToInt(OrderProducts::getQuantity).sum();
@@ -208,7 +195,7 @@ public class OrderService {
         BigDecimal totalPrice = orderProducts.stream().map(op -> op.getProducts().getPrice().multiply(BigDecimal.valueOf(op.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return GetOrderSummaryResponseDto.builder()
+        GetOrderSummaryResponseDto summary = GetOrderSummaryResponseDto.builder()
                 .id(order.getId())
                 .status(order.getStatus())
                 .items(items)
@@ -217,5 +204,10 @@ public class OrderService {
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .build();
+
+        // 3. Put into cache
+        orderRedisCache.putOrderSummary(id, summary);
+
+        return summary;
     }
 }
